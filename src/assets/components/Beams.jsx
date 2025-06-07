@@ -62,7 +62,19 @@ import {
   }
   
   const CanvasWrapper = ({ children }) => (
-    <Canvas dpr={[1, 2]} frameloop="always" className="w-full h-full relative">
+    <Canvas 
+      dpr={[1, 2]} 
+      frameloop="always" 
+      className="w-full h-full fixed inset-0"
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100vw',
+        height: '100vh',
+        zIndex: 0
+      }}
+    >
       {children}
     </Canvas>
   );
@@ -153,16 +165,23 @@ import {
   `;
   
   const Beams = ({
-    beamWidth = 2,
-    beamHeight = 15,
-    beamNumber = 12,
+    beamWidth = 1.5,
+    beamHeight = 12,
+    beamNumber = 8,
     lightColor = "#ffffff",
-    speed = 2,
-    noiseIntensity = 1.75,
-    scale = 0.2,
+    speed = 1.5,
+    noiseIntensity = 1.2,
+    scale = 0.15,
     rotation = 0,
   }) => {
     const meshRef = useRef(null);
+    
+    // Mobile-first responsive adjustments
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+    const adjustedBeamNumber = isMobile ? Math.max(6, beamNumber * 0.7) : beamNumber;
+    const adjustedBeamWidth = isMobile ? beamWidth * 0.8 : beamWidth;
+    const adjustedSpeed = isMobile ? speed * 0.8 : speed;
+    
     const beamMaterial = useMemo(
       () =>
         extendMaterial(THREE.MeshStandardMaterial, {
@@ -211,13 +230,13 @@ import {
             time: { shared: true, mixed: true, linked: true, value: 0 },
             roughness: 0.3,
             metalness: 0.3,
-            uSpeed: { shared: true, mixed: true, linked: true, value: speed },
+            uSpeed: { shared: true, mixed: true, linked: true, value: adjustedSpeed },
             envMapIntensity: 10,
             uNoiseIntensity: noiseIntensity,
             uScale: scale,
           },
         }),
-      [speed, noiseIntensity, scale]
+      [adjustedSpeed, noiseIntensity, scale]
     );
   
     return (
@@ -226,15 +245,19 @@ import {
           <PlaneNoise
             ref={meshRef}
             material={beamMaterial}
-            count={beamNumber}
-            width={beamWidth}
+            count={adjustedBeamNumber}
+            width={adjustedBeamWidth}
             height={beamHeight}
           />
           <DirLight color={lightColor} position={[0, 3, 10]} />
         </group>
         <ambientLight intensity={1} />
         <color attach="background" args={["#000000"]} />
-        <PerspectiveCamera makeDefault position={[0, 0, 20]} fov={30} />
+        <PerspectiveCamera 
+          makeDefault 
+          position={[0, 0, isMobile ? 25 : 20]} 
+          fov={isMobile ? 35 : 30} 
+        />
       </CanvasWrapper>
     );
   };
