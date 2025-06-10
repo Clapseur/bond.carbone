@@ -61,23 +61,31 @@ import {
     return mat;
   }
   
-  const CanvasWrapper = ({ children }) => (
-    <Canvas 
-      dpr={[1, 2]} 
-      frameloop="always" 
-      className="w-full h-full fixed inset-0"
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100vw',
-        height: '100vh',
-        zIndex: 0
-      }}
-    >
-      {children}
-    </Canvas>
-  );
+  const CanvasWrapper = ({ children }) => {
+    return (
+      <div 
+        className="w-full h-full fixed inset-0 pointer-events-none"
+        style={{
+          position: 'fixed',
+          width: '100vw',
+          height: '100vh',
+          overflow: 'hidden',
+          pointerEvents: 'none', // This ensures it stays in background
+          top: 0,
+          left: 0,
+          zIndex: -10 // Negative z-index to stay behind everything
+        }}
+      >
+        <Canvas
+          style={{ width: '100%', height: '100%' }}
+          camera={{ position: [0, 0, 5], fov: 75 }}
+          gl={{ antialias: true, alpha: true }}
+        >
+          {children}
+        </Canvas>
+      </div>
+    );
+  };
   
   const hexToNormalizedRGB = (hex) => {
     const clean = hex.replace("#", "");
@@ -172,7 +180,7 @@ import {
     speed = 1.5,
     noiseIntensity = 1.2,
     scale = 0.15,
-    rotation = 0,
+    rotation = 35, // Set to 35 degrees as requested
   }) => {
     const meshRef = useRef(null);
     

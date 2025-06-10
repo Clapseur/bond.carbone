@@ -13,7 +13,9 @@ const defaultParams = {
   speed: 0.3,
 };
 
-export function parseLogoImage(file) {
+export function parseLogoImage(
+  file
+) {
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
 
@@ -27,21 +29,16 @@ export function parseLogoImage(file) {
     img.crossOrigin = "anonymous";
     img.onload = function () {
       if (file.type === "image/svg+xml") {
-        img.width = 1000;
-        img.height = 1000;
+        img.width = 500;
+        img.height = 500;
       }
 
-      const MAX_SIZE = 1000;
+      const MAX_SIZE = 2000;
       const MIN_SIZE = 500;
       let width = img.naturalWidth;
       let height = img.naturalHeight;
 
-      if (
-        width > MAX_SIZE ||
-        height > MAX_SIZE ||
-        width < MIN_SIZE ||
-        height < MIN_SIZE
-      ) {
+      if (width > MAX_SIZE || height > MAX_SIZE || width < MIN_SIZE || height < MIN_SIZE) {
         if (width > height) {
           if (width > MAX_SIZE) {
             height = Math.round((height * MAX_SIZE) / width);
@@ -147,10 +144,7 @@ export function parseLogoImage(file) {
               continue;
             }
             const sumN =
-              getU(x + 1, y, u) +
-              getU(x - 1, y, u) +
-              getU(x, y + 1, u) +
-              getU(x, y - 1, u);
+              getU(x + 1, y, u) + getU(x - 1, y, u) + getU(x, y + 1, u) + getU(x, y - 1, u);
             newU[idx] = (C + sumN) / 4;
           }
         }
@@ -214,93 +208,99 @@ void main() {
     gl_Position = vec4(a_position, 0.0, 1.0);
 }`;
 
-const liquidFragSource = `#version 300 es
-precision mediump float;
+const fragmentShaderSource = `#version 300 es
+precision highp float;
 
 in vec2 vUv;
 out vec4 fragColor;
 
-uniform sampler2D u_image_texture;
 uniform float u_time;
-uniform float u_ratio;
-uniform float u_img_ratio;
-uniform float u_patternScale;
-uniform float u_refraction;
 uniform float u_edge;
 uniform float u_patternBlur;
+uniform float u_patternScale;
+uniform float u_refraction;
 uniform float u_liquid;
+uniform float u_ratio;
+uniform float u_img_ratio;
+uniform sampler2D u_image_texture;
 
-#define TWO_PI 6.28318530718
-#define PI 3.14159265358979323846
+const float PI = 3.14159265359;
 
-vec3 mod289(vec3 x) { return x - floor(x * (1. / 289.)) * 289.; }
-vec2 mod289(vec2 x) { return x - floor(x * (1. / 289.)) * 289.; }
-vec3 permute(vec3 x) { return mod289(((x*34.)+1.)*x); }
-float snoise(vec2 v) {
-    const vec4 C = vec4(0.211324865405187, 0.366025403784439, -0.577350269189626, 0.024390243902439);
-    vec2 i = floor(v + dot(v, C.yy));
-    vec2 x0 = v - i + dot(i, C.xx);
-    vec2 i1;
-    i1 = (x0.x > x0.y) ? vec2(1., 0.) : vec2(0., 1.);
-    vec4 x12 = x0.xyxy + C.xxzz;
-    x12.xy -= i1;
-    i = mod289(i);
-    vec3 p = permute(permute(i.y + vec3(0., i1.y, 1.)) + i.x + vec3(0., i1.x, 1.));
-    vec3 m = max(0.5 - vec3(dot(x0, x0), dot(x12.xy, x12.xy), dot(x12.zw, x12.zw)), 0.);
-    m = m*m;
-    m = m*m;
-    vec3 x = 2. * fract(p * C.www) - 1.;
-    vec3 h = abs(x) - 0.5;
-    vec3 ox = floor(x + 0.5);
-    vec3 a0 = x - ox;
-    m *= 1.79284291400159 - 0.85373472095314 * (a0*a0 + h*h);
-    vec3 g;
-    g.x = a0.x * x0.x + h.x * x0.y;
-    g.yz = a0.yz * x12.xz + h.yz * x12.yw;
-    return 130. * dot(m, g);
+vec2 rotate(vec2 v, float a) {
+    float s = sin(a);
+    float c = cos(a);
+    mat2 m = mat2(c, -s, s, c);
+    return m * v;
 }
 
 vec2 get_img_uv() {
-    vec2 img_uv = vUv;
-    img_uv -= .5;
-    if (u_ratio > u_img_ratio) {
-        img_uv.x = img_uv.x * u_ratio / u_img_ratio;
+    vec2 uv = vUv;
+    uv.y = 1. - uv.y;
+    if (u_img_ratio > u_ratio) {
+        float scale = u_img_ratio / u_ratio;
+        uv.x = (uv.x - 0.5) * scale + 0.5;
     } else {
-        img_uv.y = img_uv.y * u_img_ratio / u_ratio;
+        float scale = u_ratio / u_img_ratio;
+        uv.y = (uv.y - 0.5) * scale + 0.5;
     }
-    float scale_factor = 1.;
-    img_uv *= scale_factor;
-    img_uv += .5;
-    img_uv.y = 1. - img_uv.y;
-    return img_uv;
+    return uv;
 }
-vec2 rotate(vec2 uv, float th) {
-    return mat2(cos(th), sin(th), -sin(th), cos(th)) * uv;
+
+vec3 mod289(vec3 x) {
+    return x - floor(x * (1.0 / 289.0)) * 289.0;
 }
-float get_color_channel(float c1, float c2, float stripe_p, vec3 w, float extra_blur, float b) {
-    float ch = c2;
-    float border = 0.;
-    float blur = u_patternBlur + extra_blur;
-    ch = mix(ch, c1, smoothstep(.0, blur, stripe_p));
-    border = w[0];
-    ch = mix(ch, c2, smoothstep(border - blur, border + blur, stripe_p));
-    b = smoothstep(.2, .8, b);
-    border = w[0] + .4 * (1. - b) * w[1];
-    ch = mix(ch, c1, smoothstep(border - blur, border + blur, stripe_p));
-    border = w[0] + .5 * (1. - b) * w[1];
-    ch = mix(ch, c2, smoothstep(border - blur, border + blur, stripe_p));
-    border = w[0] + w[1];
-    ch = mix(ch, c1, smoothstep(border - blur, border + blur, stripe_p));
-    float gradient_t = (stripe_p - w[0] - w[1]) / w[2];
-    float gradient = mix(c1, c2, smoothstep(0., 1., gradient_t));
-    ch = mix(ch, gradient, smoothstep(border - blur, border + blur, stripe_p));
+
+vec2 mod289(vec2 x) {
+    return x - floor(x * (1.0 / 289.0)) * 289.0;
+}
+
+vec3 permute(vec3 x) {
+    return mod289(((x*34.0)+1.0)*x);
+}
+
+float snoise(vec2 v) {
+    const vec4 C = vec4(0.211324865405187,
+                        0.366025403784439,
+                       -0.577350269189626,
+                        0.024390243902439);
+    vec2 i  = floor(v + dot(v, C.yy) );
+    vec2 x0 = v -   i + dot(i, C.xx);
+    vec2 i1;
+    i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+    vec4 x12 = x0.xyxy + C.xxzz;
+    x12.xy -= i1;
+    i = mod289(i);
+    vec3 p = permute( permute( i.y + vec3(0.0, i1.y, 1.0 ))
+        + i.x + vec3(0.0, i1.x, 1.0 ));
+    vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);
+    m = m*m ;
+    m = m*m ;
+    vec3 x = 2.0 * fract(p * C.www) - 1.0;
+    vec3 h = abs(x) - 0.5;
+    vec3 ox = floor(x + 0.5);
+    vec3 a0 = x - ox;
+    m *= 1.79284291400159 - 0.85373472095314 * ( a0*a0 + h*h );
+    vec3 g;
+    g.x  = a0.x  * x0.x  + h.x  * x0.y;
+    g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+    return 130.0 * dot(m, g);
+}
+
+float get_color_channel(float color1_ch, float color2_ch, float stripe, vec3 w, float blur, float bulge) {
+    float ch = color1_ch;
+    float edge1 = w[0];
+    float edge2 = edge1 + w[1];
+    ch = mix(ch, color2_ch, smoothstep(edge1 - blur, edge1 + blur, stripe));
+    ch = mix(ch, color1_ch, smoothstep(edge2 - blur, edge2 + blur, stripe));
     return ch;
 }
+
 float get_img_frame_alpha(vec2 uv, float img_frame_width) {
     float img_frame_alpha = smoothstep(0., img_frame_width, uv.x) * smoothstep(1., 1. - img_frame_width, uv.x);
     img_frame_alpha *= smoothstep(0., img_frame_width, uv.y) * smoothstep(1., 1. - img_frame_width, uv.y);
     return img_frame_alpha;
 }
+
 void main() {
     vec2 uv = vUv;
     uv.y = 1. - uv.y;
@@ -309,11 +309,23 @@ void main() {
     float t = .001 * u_time;
     vec2 img_uv = get_img_uv();
     vec4 img = texture(u_image_texture, img_uv);
+    
+    // Declare all variables
     vec3 color = vec3(0.);
     float opacity = 1.;
     vec3 color1 = vec3(.98, 0.98, 1.);
     vec3 color2 = vec3(.1, .1, .1 + .1 * smoothstep(.7, 1.3, uv.x + uv.y));
     float edge = img.r;
+    
+    // Create proper logo mask - check if pixel is part of logo (non-white)
+    float logoAlpha = 1.0 - img.r; // Assuming logo is dark on white background
+    
+    // If not part of logo, make completely transparent
+    if (logoAlpha < 0.1) {
+        fragColor = vec4(0.0, 0.0, 0.0, 0.0);
+        return;
+    }
+    
     vec2 grad_uv = uv;
     grad_uv -= .5;
     float dist = length(grad_uv + vec2(0., .2 * diagonal));
@@ -329,6 +341,8 @@ void main() {
     float thin_strip_2_width = cycle_width * thin_strip_2_ratio;
     opacity = 1. - smoothstep(.9 - .5 * u_edge, 1. - .5 * u_edge, edge);
     opacity *= get_img_frame_alpha(img_uv, 0.01);
+    opacity *= logoAlpha; // Apply logo mask to opacity
+    
     float noise = snoise(uv - t);
     edge += (1. - edge) * u_liquid * noise;
     float refr = 0.;
@@ -368,7 +382,12 @@ void main() {
 }
 `;
 
-export default function MetallicPaint({ imageData, params = defaultParams }) {
+export default function MetallicPaint({
+  imageData,
+  params = defaultParams,
+  width = 160,
+  height = 40
+}) {
   const canvasRef = useRef(null);
   const [gl, setGl] = useState(null);
   const [uniforms, setUniforms] = useState({});
@@ -391,12 +410,17 @@ export default function MetallicPaint({ imageData, params = defaultParams }) {
       const gl = canvas?.getContext("webgl2", {
         antialias: true,
         alpha: true,
+        premultipliedAlpha: false
       });
       if (!canvas || !gl) {
         return;
       }
 
-      function createShader(gl, sourceCode, type) {
+      function createShader(
+        gl,
+        sourceCode,
+        type
+      ) {
         const shader = gl.createShader(type);
         if (!shader) {
           return null;
@@ -408,7 +432,7 @@ export default function MetallicPaint({ imageData, params = defaultParams }) {
         if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
           console.error(
             "An error occurred compiling the shaders: " +
-              gl.getShaderInfoLog(shader),
+            gl.getShaderInfoLog(shader)
           );
           gl.deleteShader(shader);
           return null;
@@ -420,12 +444,12 @@ export default function MetallicPaint({ imageData, params = defaultParams }) {
       const vertexShader = createShader(
         gl,
         vertexShaderSource,
-        gl.VERTEX_SHADER,
+        gl.VERTEX_SHADER
       );
       const fragmentShader = createShader(
         gl,
-        liquidFragSource,
-        gl.FRAGMENT_SHADER,
+        fragmentShaderSource,  // Changed from liquidFragSource to fragmentShaderSource
+        gl.FRAGMENT_SHADER
       );
       const program = gl.createProgram();
       if (!program || !vertexShader || !fragmentShader) {
@@ -439,7 +463,7 @@ export default function MetallicPaint({ imageData, params = defaultParams }) {
       if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
         console.error(
           "Unable to initialize the shader program: " +
-            gl.getProgramInfoLog(program),
+          gl.getProgramInfoLog(program)
         );
         return null;
       }
@@ -450,7 +474,10 @@ export default function MetallicPaint({ imageData, params = defaultParams }) {
         for (let i = 0; i < uniformCount; i++) {
           let uniformName = gl.getActiveUniform(program, i)?.name;
           if (!uniformName) continue;
-          uniforms[uniformName] = gl.getUniformLocation(program, uniformName);
+          uniforms[uniformName] = gl.getUniformLocation(
+            program,
+            uniformName
+          );
         }
         return uniforms;
       }
@@ -515,11 +542,19 @@ export default function MetallicPaint({ imageData, params = defaultParams }) {
       const imgRatio = imageData.width / imageData.height;
       gl.uniform1f(uniforms.u_img_ratio, imgRatio);
 
-      const side = 1000;
-      canvasEl.width = side * devicePixelRatio;
-      canvasEl.height = side * devicePixelRatio;
-      gl.viewport(0, 0, canvasEl.height, canvasEl.height);
-      gl.uniform1f(uniforms.u_ratio, 1);
+      // Use the provided width and height props with device pixel ratio for quality
+      const pixelRatio = window.devicePixelRatio || 1;
+      canvasEl.width = width * pixelRatio;
+      canvasEl.height = height * pixelRatio;
+      
+      // Set CSS size to match the desired display size
+      canvasEl.style.width = width + 'px';
+      canvasEl.style.height = height + 'px';
+      
+      gl.viewport(0, 0, canvasEl.width, canvasEl.height);
+      
+      const canvasRatio = width / height;
+      gl.uniform1f(uniforms.u_ratio, canvasRatio);
       gl.uniform1f(uniforms.u_img_ratio, imgRatio);
     }
 
@@ -529,7 +564,7 @@ export default function MetallicPaint({ imageData, params = defaultParams }) {
     return () => {
       window.removeEventListener("resize", resizeCanvas);
     };
-  }, [gl, uniforms, imageData]);
+  }, [gl, uniforms, imageData, width, height]);
 
   useEffect(() => {
     if (!gl || !uniforms) return;
@@ -560,7 +595,7 @@ export default function MetallicPaint({ imageData, params = defaultParams }) {
         0,
         gl.RGBA,
         gl.UNSIGNED_BYTE,
-        imageData?.data,
+        imageData?.data
       );
 
       gl.uniform1i(uniforms.u_image_texture, 0);
@@ -575,7 +610,16 @@ export default function MetallicPaint({ imageData, params = defaultParams }) {
     };
   }, [gl, uniforms, imageData]);
 
+  // Around line 590-600, update the canvas return:
   return (
-    <canvas ref={canvasRef} className="block w-full h-full object-contain" />
+    <canvas 
+      ref={canvasRef} 
+      className="block w-full h-full object-contain"
+      style={{
+        width: width + 'px',
+        height: height + 'px',
+        background: 'transparent'
+      }}
+    />
   );
 }

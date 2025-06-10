@@ -1,48 +1,58 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import supabase from '../lib/supabase';
 
 const ProfileSetup = ({ code, onProfileCreated }) => {
+  // Add these additional fields to the existing form
   const [formData, setFormData] = useState({
     prenom: '',
     nom: '',
     email: '',
     telephone: '',
-    entreprise: ''
+    entreprise: '',
+    poste: '',
+    bio: '',
+    linkedin: '',
+    website: '',
+    location: ''
   });
+  
+  // Ajoutez ces déclarations d'état manquantes
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [tosAccepted, setTosAccepted] = useState(false);
-
+  
+  // Update the handleSubmit function
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!tosAccepted) {
       setError('Vous devez accepter les conditions d\'utilisation');
       return;
     }
-
+  
     setLoading(true);
     setError('');
-
+  
     try {
+      const profileData = {
+        ...formData,
+        is_used: true,
+        profile_created_at: new Date().toISOString(),
+        page_parked_at: new Date().toISOString()
+      };
+  
       const { error } = await supabase
         .from('user_codes')
-        .update({
-          ...formData,
-          is_used: true,
-          profile_created_at: new Date().toISOString()
-        })
+        .update(profileData)
         .eq('code', code);
-
+  
       if (error) {
         setError('Erreur lors de la création du profil');
         return;
       }
-
-      // Sauvegarder dans localStorage
-      localStorage.setItem('carbone_profile', JSON.stringify({ code, ...formData }));
-      
-      onProfileCreated();
+  
+      onProfileCreated({ code, ...profileData });
     } catch (err) {
+      console.error('Erreur de connexion détaillée:', err);
       setError('Erreur de connexion. Veuillez réessayer.');
     } finally {
       setLoading(false);

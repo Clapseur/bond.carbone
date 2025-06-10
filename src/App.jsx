@@ -1,54 +1,56 @@
-import React, { useState } from 'react';
-import Header from './components/Header.jsx';
-import ConnectionForm from './components/ConnectionForm.jsx';
-import ProfileSetup from './components/ProfileSetup.jsx';
-import ProfileView from './components/ProfileView.jsx';
-import Beams from './assets/components/Beams.jsx';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import Header from './components/Header';
+import ConnectionForm from './components/ConnectionForm';
+import ProfileSetup from './components/ProfileSetup';
+import ProfileView from './components/ProfileView';
+import DynamicProfilePage from './components/DynamicProfilePage';
+import Beams from './components/Beams';
+import LoadingScreen from './components/LoadingScreen';
+import { supabase } from './lib/supabase';
 
 function App() {
-  const [currentView, setCurrentView] = useState('connection');
-  const [userCode, setUserCode] = useState('');
+  const [isAppLoading, setIsAppLoading] = useState(true);
+  const [userSession, setUserSession] = useState(null);
+
+  useEffect(() => {
+    // Check for existing session token
+    const token = localStorage.getItem('carbone_session_token');
+    if (token) {
+      setUserSession(JSON.parse(token));
+    }
+    
+    const timer = setTimeout(() => {
+      setIsAppLoading(false);
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (isAppLoading) {
+    return <LoadingScreen />;
+  }
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-black">
-      {/* Beams Background - lowest layer */}
-      <div className="fixed inset-0 w-full h-full z-0">
-        <Beams
-          beamWidth={1.5}
-          beamHeight={12}
-          beamNumber={8}
-          lightColor="#ffffff"
-          speed={1.5}
-          noiseIntensity={1.2}
-          scale={0.15}
-          rotation={35}
-        />
-      </div>
-      
-      {/* Header - above beams */}
-      <Header />
-      
-      {/* Content Layer - highest interactive layer */}
-      <div className="relative z-20 w-full h-full flex flex-col items-center justify-center pt-20">
-        {currentView === 'connection' && (
-          <ConnectionForm 
-            onCodeValidated={(code) => {
-              setUserCode(code);
-              setCurrentView('setup');
-            }}
+    <Router>
+      <div className="relative w-full min-h-screen bg-black overflow-x-hidden">
+        <Beams rotation={35} />
+        <Header userSession={userSession} setUserSession={setUserSession} />
+        
+        <Routes>
+          <Route path="/" element={<ConnectionForm />} />
+          <Route 
+            path="/:profileId" 
+            element={
+              <DynamicProfilePage 
+                userSession={userSession} 
+                setUserSession={setUserSession} 
+              />
+            } 
           />
-        )}
-        {currentView === 'setup' && (
-          <ProfileSetup 
-            code={userCode}
-            onProfileCreated={() => setCurrentView('profile')}
-          />
-        )}
-        {currentView === 'profile' && (
-          <ProfileView code={userCode} />
-        )}
+        </Routes>
       </div>
-    </div>
+    </Router>
   );
 }
 
