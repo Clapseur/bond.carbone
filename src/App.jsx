@@ -20,11 +20,10 @@ function App() {
       setUserSession(JSON.parse(token));
     }
     
-    const timer = setTimeout(() => {
+    // Simulate app initialization
+    setTimeout(() => {
       setIsAppLoading(false);
-    }, 3000);
-
-    return () => clearTimeout(timer);
+    }, 2000);
   }, []);
 
   if (isAppLoading) {
@@ -33,22 +32,32 @@ function App() {
 
   return (
     <Router>
-      <div className="relative w-full min-h-screen bg-black overflow-x-hidden">
-        <Beams rotation={35} />
-        <Header userSession={userSession} setUserSession={setUserSession} />
+      <div className="min-h-screen bg-black text-white relative">
+        {/* Beams Background for all pages */}
+        <div className="fixed inset-0 z-0">
+          <Beams />
+        </div>
         
-        <Routes>
-          <Route path="/" element={<ConnectionForm />} />
-          <Route 
-            path="/:profileId" 
-            element={
-              <DynamicProfilePage 
-                userSession={userSession} 
-                setUserSession={setUserSession} 
-              />
-            } 
-          />
-        </Routes>
+        {/* Content overlay */}
+        <div className="relative z-10">
+          <Header userSession={userSession} setUserSession={setUserSession} />
+          <Routes>
+            <Route 
+              path="/" 
+              element={<ConnectionForm />} 
+            />
+            <Route 
+              path="/:profileId" 
+              element={
+                <DynamicProfilePage 
+                  userSession={userSession} 
+                  setUserSession={setUserSession} 
+                />
+              } 
+            />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </div>
       </div>
     </Router>
   );

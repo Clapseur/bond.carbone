@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+.glass-header {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   color-scheme: light dark;
@@ -10,7 +16,6 @@
 * {
   margin: 0;
   padding: 0;
-  box-sizing: border-box;
 }
 
 html, body, #root {
@@ -19,22 +24,15 @@ html, body, #root {
   overflow-x: hidden;
 }
 
-/* Remove duplicate definitions - keep only ONE */
+/* Single glassmorphic utility definition */
 @layer utilities {
   .glassmorphic-card {
-    background: rgba(255, 255, 255, 0.05) !important;
-    backdrop-filter: blur(20px) !important;
-    -webkit-backdrop-filter: blur(20px) !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
-    border-radius: 12px !important;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+    @apply bg-white/5 backdrop-blur-xl border border-white/20 rounded-xl;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
   }
   
   .glassmorphic-header {
-    background: rgba(0, 0, 0, 0.2) !important;
-    backdrop-filter: blur(16px) !important;
-    -webkit-backdrop-filter: blur(16px) !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
+    @apply bg-black/10 backdrop-blur-md border-b border-white/10;
   }
 }
 
@@ -45,28 +43,16 @@ html, body, #root {
   }
   
   .mobile-form {
-    max-width: 380px !important;  /* Increased from 280px to 380px */
-    padding: 20px !important;     /* Increased from 12px to 20px */
+    max-width: 380px !important;
+    padding: 20px !important;
   }
   
   .mobile-input {
-    font-size: 16px !important;   /* Increased from 14px to 16px for better UX */
-    padding: 12px !important;     /* Increased from 8px to 12px */
+    font-size: 16px !important;
+    padding: 12px !important;
   }
   
   .mobile-text {
-    font-size: 14px !important;   /* Increased from 12px to 14px */
-  }
-}
-
-/* Keep only the glassmorphic utilities - convert to Tailwind custom utilities */
-@layer utilities {
-  .glassmorphic-card {
-    @apply bg-white/5 backdrop-blur-xl border border-white/20 rounded-3xl;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  }
-  
-  .glassmorphic-header {
-    @apply bg-black/10 backdrop-blur-md border-b border-white/10;
+    font-size: 14px !important;
   }
 }

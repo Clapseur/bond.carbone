@@ -1,85 +1,98 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import Lanyard from './Lanyard/Lanyard';
+import { Star } from 'lucide-react';
+import { IconButton } from './animate-ui/buttons/icon';
 
 const ProfileView = ({ profileData, userSession, setUserSession }) => {
-  const [isStarred, setIsStarred] = useState(
-    userSession?.starredProfiles?.includes(profileData.code) || false
-  );
+  const [isStarred, setIsStarred] = useState(false);
+
+  // Initialize starred state from userSession
+  useEffect(() => {
+    if (userSession?.starredProfiles) {
+      setIsStarred(userSession.starredProfiles.includes(profileData.code));
+    }
+  }, [userSession, profileData.code]);
 
   const handleStarProfile = () => {
-    if (!userSession) return;
-
-    const updatedSession = { ...userSession };
+    console.log('Star button clicked!', { userSession, profileData: profileData.code, isStarred });
+    
+    // Create a session if it doesn't exist
+    let updatedSession = userSession || { starredProfiles: [] };
+    
+    // Ensure starredProfiles array exists
+    if (!updatedSession.starredProfiles) {
+      updatedSession.starredProfiles = [];
+    }
+    
+    // Create a copy to avoid mutation
+    updatedSession = { ...updatedSession };
+    updatedSession.starredProfiles = [...updatedSession.starredProfiles];
     
     if (isStarred) {
       // Remove from starred
       updatedSession.starredProfiles = updatedSession.starredProfiles.filter(
         id => id !== profileData.code
       );
+      console.log('Removing from favorites');
     } else {
       // Add to starred
-      if (!updatedSession.starredProfiles) {
-        updatedSession.starredProfiles = [];
+      if (!updatedSession.starredProfiles.includes(profileData.code)) {
+        updatedSession.starredProfiles.push(profileData.code);
       }
-      updatedSession.starredProfiles.push(profileData.code);
+      console.log('Adding to favorites');
     }
 
+    // Update localStorage
     localStorage.setItem('carbone_session_token', JSON.stringify(updatedSession));
+    
+    // Update parent state
     setUserSession(updatedSession);
+    
+    // Update local state
     setIsStarred(!isStarred);
+    
+    console.log('Updated session:', updatedSession);
   };
 
   return (
-    <div className="bg-black/20 backdrop-blur-md border border-white/10 rounded-2xl p-8 w-full max-w-2xl mx-4">
-      {/* Star button */}
-      <div className="flex justify-end mb-4">
-        <button
-          onClick={handleStarProfile}
-          className={`p-2 rounded-full transition-colors ${
-            isStarred 
-              ? 'bg-yellow-500 text-white' 
-              : 'bg-white/10 text-gray-400 hover:text-yellow-500'
-          }`}
-        >
-          ★
-        </button>
+    <div className="min-h-screen relative">
+      {/* Lanyard Component - Now enabled and positioned in front */}
+      <div className="relative z-50">
+        <Lanyard 
+          position={[0, 0, 25]} 
+          profileData={profileData}
+          transparent={true}
+          fov={25}
+          gravity={[0, -30, 0]}
+        />
       </div>
       
-      {/* Profile content */}
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">
-          {profileData.prenom} {profileData.nom}
-        </h1>
-        <p className="text-gray-300">{profileData.poste} @ {profileData.entreprise}</p>
-        <p className="text-gray-400">{profileData.location}</p>
-      </div>
-
-      <div className="space-y-4">
-        <div className="bg-white/5 rounded-lg p-4">
-          <h3 className="text-lg font-semibold text-white mb-2">Bio</h3>
-          <p className="text-gray-300">{profileData.bio}</p>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-white/5 rounded-lg p-4">
-            <h4 className="font-medium text-white">Email</h4>
-            <p className="text-gray-300">{profileData.email}</p>
-          </div>
+      {/* Enhanced Star Button Overlay - Moved down by 2x button height */}
+      <div className="fixed top-24 right-6 z-[100]">
+        <div className="relative">
+          {/* Background blur effect */}
+          <div className="absolute inset-0 bg-black/10 backdrop-blur-sm rounded-full scale-150 -z-10" />
           
-          <div className="bg-white/5 rounded-lg p-4">
-            <h4 className="font-medium text-white">Téléphone</h4>
-            <p className="text-gray-300">{profileData.telephone}</p>
+          <IconButton 
+            icon={Star}
+            active={isStarred}
+            onClick={handleStarProfile}
+            size="md"
+            animate={true}
+            className="shadow-2xl transition-all duration-300 hover:shadow-yellow-400/25"
+          />
+          
+          {/* Tooltip */}
+          <div className="absolute top-full mt-2 right-0 bg-black/80 backdrop-blur-sm text-white text-sm px-3 py-1 rounded-lg opacity-0 hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none">
+            {isStarred ? 'Remove from favorites' : 'Add to favorites'}
           </div>
         </div>
-        
-        {profileData.linkedin && (
-          <div className="bg-white/5 rounded-lg p-4">
-            <h4 className="font-medium text-white">LinkedIn</h4>
-            <a href={profileData.linkedin} className="text-blue-400 hover:underline">
-              {profileData.linkedin}
-            </a>
-          </div>
-        )}
+      </div>
+      
+      {/* Optional: Profile info tooltip on hover */}
+      <div className="absolute bottom-4 left-4 z-60 bg-black/70 backdrop-blur-sm rounded-lg p-3 max-w-xs opacity-80 hover:opacity-100 transition-opacity">
+        {/* You can add profile info here if needed */}
       </div>
     </div>
   );

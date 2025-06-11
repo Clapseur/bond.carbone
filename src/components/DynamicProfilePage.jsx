@@ -100,7 +100,7 @@ const DynamicProfilePage = ({ userSession, setUserSession }) => {
     return (
       <div className="w-full min-h-screen flex items-center justify-center p-4" style={{paddingTop: '70px'}}>
         <ProfileSetup 
-          userCode={profileId} 
+          code={profileId}
           onProfileCreated={handleProfileCreated}
           isPageParking={true}
         />
