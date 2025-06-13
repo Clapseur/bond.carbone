@@ -35,7 +35,6 @@ const ConnectionForm = () => {
         return;
       }
 
-      // Rediriger vers la page de profil pour configuration
       navigate(`/${code.toUpperCase()}`);
     } catch (error) {
       console.error('Erreur de connexion détaillée:', error);
@@ -58,7 +57,6 @@ const ConnectionForm = () => {
         style={{
           width: '100%',
           margin: '0 auto'
-          // Remove maxWidth and padding from here since CSS handles it
         }}
       >
         <div className="text-center mb-4">

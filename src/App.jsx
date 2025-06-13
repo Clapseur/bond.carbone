@@ -14,13 +14,11 @@ function App() {
   const [userSession, setUserSession] = useState(null);
 
   useEffect(() => {
-    // Check for existing session token
     const token = localStorage.getItem('carbone_session_token');
     if (token) {
       setUserSession(JSON.parse(token));
     }
     
-    // Simulate app initialization
     setTimeout(() => {
       setIsAppLoading(false);
     }, 2000);
@@ -33,12 +31,10 @@ function App() {
   return (
     <Router>
       <div className="min-h-screen bg-black text-white relative">
-        {/* Beams Background for all pages */}
         <div className="fixed inset-0 z-0">
           <Beams />
         </div>
         
-        {/* Content overlay */}
         <div className="relative z-10">
           <Header userSession={userSession} setUserSession={setUserSession} />
           <Routes>

@@ -7,7 +7,7 @@ import LoadingScreen from './LoadingScreen';
 
 const DynamicProfilePage = ({ userSession, setUserSession }) => {
   const { profileId } = useParams();
-  const [pageStatus, setPageStatus] = useState('loading'); // 'loading', 'vacant', 'occupied'
+  const [pageStatus, setPageStatus] = useState('loading');
   const [profileData, setProfileData] = useState(null);
   const [error, setError] = useState('');
 
@@ -17,7 +17,6 @@ const DynamicProfilePage = ({ userSession, setUserSession }) => {
 
   const checkPageStatus = async () => {
     try {
-      // Check if this ID exists and is used
       const { data, error } = await supabase
         .from('user_codes')
         .select('*')
@@ -25,7 +24,6 @@ const DynamicProfilePage = ({ userSession, setUserSession }) => {
         .single();
 
       if (error && error.code === 'PGRST116') {
-        // Code doesn't exist - invalid ID
         setError('Invalid profile ID');
         setPageStatus('error');
         return;
@@ -38,11 +36,9 @@ const DynamicProfilePage = ({ userSession, setUserSession }) => {
       }
 
       if (data.is_used && data.prenom) {
-        // Page is occupied
         setProfileData(data);
         setPageStatus('occupied');
         
-        // Create session token if not exists
         if (!userSession) {
           const sessionToken = {
             profileId: data.code,
@@ -55,7 +51,6 @@ const DynamicProfilePage = ({ userSession, setUserSession }) => {
           setUserSession(sessionToken);
         }
       } else {
-        // Page is vacant
         setPageStatus('vacant');
       }
     } catch (err) {
@@ -69,7 +64,6 @@ const DynamicProfilePage = ({ userSession, setUserSession }) => {
     setProfileData(newProfileData);
     setPageStatus('occupied');
     
-    // Create session token
     const sessionToken = {
       profileId: newProfileData.code,
       name: `${newProfileData.prenom} ${newProfileData.nom}`,

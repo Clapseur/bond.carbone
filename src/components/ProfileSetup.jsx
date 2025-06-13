@@ -34,7 +34,9 @@ const ProfileSetup = ({ code, onProfileCreated }) => {
     }
   };
 
-  const handleFinalStepCompleted = async () => {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
     if (!tosAccepted) {
       setError('Vous devez accepter les conditions d\'utilisation');
       return;
@@ -43,14 +45,12 @@ const ProfileSetup = ({ code, onProfileCreated }) => {
     setLoading(true);
     setError('');
 
-    // Add validation before creating profileData
     if (!formData.prenom || !formData.nom || !formData.email) {
       setError('Veuillez remplir tous les champs obligatoires');
       setLoading(false);
       return;
     }
 
-    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
       setError('Format d\'email invalide');
@@ -59,7 +59,6 @@ const ProfileSetup = ({ code, onProfileCreated }) => {
     }
 
     try {
-      // First, verify the code exists
       const { data: existingCode, error: checkError } = await supabase
         .from('user_codes')
         .select('*')
@@ -73,7 +72,6 @@ const ProfileSetup = ({ code, onProfileCreated }) => {
         return;
       }
 
-      // Check if code is already used
       if (existingCode.is_used && existingCode.prenom) {
         setError('Ce code a déjà été utilisé');
         setLoading(false);
@@ -98,7 +96,7 @@ const ProfileSetup = ({ code, onProfileCreated }) => {
       if (updateError) {
         console.error('Database update error:', updateError);
         
-        // Handle specific database errors
+        // Gestion spécifique des erreurs DB
         if (updateError.code === '23505') {
           setError('Cette adresse email est déjà utilisée');
         } else if (updateError.code === '23502') {
@@ -112,17 +110,14 @@ const ProfileSetup = ({ code, onProfileCreated }) => {
         return;
       }
 
-      // Create session token with 1 day expiration
       const sessionToken = {
         code: code,
         profileData: profileData,
         createdAt: new Date().toISOString(),
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 1 day
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
       };
 
-      // Store in localStorage
       localStorage.setItem('carbone_session_token', JSON.stringify(sessionToken));
-
       onProfileCreated({ code, ...profileData });
     } catch (err) {
       console.error('Unexpected error:', err);
@@ -133,12 +128,12 @@ const ProfileSetup = ({ code, onProfileCreated }) => {
 
   return (
     <div className="relative min-h-screen flex items-center justify-center p-4">
-      {/* Add Beams background */}
       <Beams rotation={25} className="absolute inset-0 z-0" />
       
       <div className="relative z-10 bg-black/20 backdrop-blur-md border border-white/10 rounded-2xl p-8 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Configuration du Profil</h1>
+          <div className="relative z-10 bg-black/20 backdrop-blur-md border border-white/10 rounded-2xl p-8 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+        <h1 className="text-3xl font-bold text-white mb-2">Configuration du Profil</h1>
           <p className="text-gray-300">Code: <span className="font-mono text-blue-400">{code}</span></p>
         </div>
 
